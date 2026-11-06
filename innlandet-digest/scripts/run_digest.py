@@ -9,6 +9,7 @@ Stage 3: Generate plain-language digest (rule-based for skeleton; agent in full 
 import json
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -89,7 +90,7 @@ def generate_digest(items: list[dict]) -> dict:
             "source": it["source"]
         })
     return {
-        "generated_at": datetime.now(ZoneInfo("Europe/Oslo")).isoformat(),
+        "generated_at": datetime.now(ZoneInfo("Europe/Oslo")).strftime("%Y-%m-%d %H:%M"),
         "source_feed": RSS_URL,
         "total_items_fetched": len(items),
         "relevant_items": len(digest_items),
