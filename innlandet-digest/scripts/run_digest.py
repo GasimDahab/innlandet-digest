@@ -89,7 +89,7 @@ def generate_digest(items: list[dict]) -> dict:
             "source": it["source"]
         })
     return {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(ZoneInfo("Europe/Oslo")).isoformat(),
         "source_feed": RSS_URL,
         "total_items_fetched": len(items),
         "relevant_items": len(digest_items),
