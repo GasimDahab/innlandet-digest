@@ -1,5 +1,5 @@
 # Innlandet Public Announcements Digest
-*Generated: 2026-11-06T07:42:53.828135Z*
+*Generated: 2026-11-06T02:00:18.601647Z*
 *Source: https://www.statsforvalteren.no/innlandet/nyheter/rss*
 *Relevant items: 10 / 20*
 
