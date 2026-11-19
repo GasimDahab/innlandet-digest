@@ -12,6 +12,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from xml.etree import ElementTree as ET
+from email.utils import parsedate_to_datetime
 
 import requests
 
@@ -19,9 +20,31 @@ RSS_URL = "https://www.statsforvalteren.no/innlandet/nyheter/rss"
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 CONTEXT_DIR = Path(__file__).parent.parent / "context"
 
+OSLO = ZoneInfo("Europe/Oslo")
+
+
+def format_oslo_date(raw_date: str) -> str:
+    """Parse RSS date and return clean Oslo local time string."""
+    if not raw_date:
+        return ""
+    try:
+        # Try ISO format first (atom:updated)
+        if "T" in raw_date:
+            dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        else:
+            # RFC 822 style (pubDate)
+            dt = parsedate_to_datetime(raw_date)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=OSLO)
+        local = dt.astimezone(OSLO)
+        return local.strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return raw_date.strip()
+
+
 # Relevance keywords for local public services (citizen-facing)
 RELEVANT_KEYWORDS = [
-    "høring", "høring", "plan", "regulering", "vei", "veg", "bru", "trafikk",
+    "høring", "plan", "regulering", "vei", "veg", "bru", "trafikk",
     "miljø", "natur", "landbruk", "skole", "barnehage", "bolig", "helse",
     "innlandet", "kommune", "fylke", "statsforvalteren", "offentlig",
     "arrangement", "møte", "tilskudd", "støtte"
@@ -51,7 +74,7 @@ def parse_items(xml_text: str) -> list[dict]:
             "title": title,
             "link": link,
             "description": desc[:500],  # truncate
-            "date": updated,
+            "date": format_oslo_date(updated),
             "source": "Statsforvalteren i Innlandet"
         })
     return items
@@ -90,7 +113,7 @@ def generate_digest(items: list[dict]) -> dict:
             "source": it["source"]
         })
     return {
-        "generated_at": datetime.now(ZoneInfo("Europe/Oslo")).strftime("%Y-%m-%d %H:%M"),
+        "generated_at": datetime.now(OSLO).strftime("%Y-%m-%d %H:%M"),
         "source_feed": RSS_URL,
         "total_items_fetched": len(items),
         "relevant_items": len(digest_items),
@@ -107,12 +130,12 @@ def main():
     print(f"Parsed {len(items)} items")
     print("Stage 3: Filtering and summarizing...")
     digest = generate_digest(items)
-    
+
     out_json = OUTPUT_DIR / "digest.json"
     out_md = OUTPUT_DIR / "digest.md"
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(digest, f, ensure_ascii=False, indent=2)
-    
+
     # Markdown for human reading
     md_lines = [
         f"# Innlandet Public Announcements Digest",
@@ -129,9 +152,10 @@ def main():
         md_lines.append("")
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("\n".join(md_lines))
-    
+
     print(f"Output written to {out_json} and {out_md}")
-    print(json.dumps({"relevant_count": digest["relevant_items"], "output_files": [str(out_json), str(out_md)]}, indent=2))
+    print(json.dumps({"relevant_count": digest["relevant_items"], "output_files": [str(out_json), str(out_md)]},
+                     indent=2))
 
 
 if __name__ == "__main__":
